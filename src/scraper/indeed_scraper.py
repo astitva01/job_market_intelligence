@@ -49,7 +49,15 @@ def scrape_indeed(keyword, pages=5, use_proxy=False):
             continue
 
         soup = BeautifulSoup(html, "html.parser")
-        cards = soup.find_all("td", {"class": "resultContent"})
+        # cards = soup.find_all("td", {"class": "resultContent"})
+        cards = soup.select("div.job_seen_beacon")
+
+        print("== DEBUG: Number of cards found:", len(cards))
+
+        for c in cards[:3]:
+            print("== SAMPLE CARD TEXT:", c.text[:200])
+
+
 
         for c in cards:
             title_tag = c.find("h2", {"class": "jobTitle"})
