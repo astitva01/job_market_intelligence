@@ -22,6 +22,27 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Create .env file from GitHub Secrets
+      run: |
+        echo "ADZUNA_APP_ID=${{ secrets.ADZUNA_APP_ID }}" >> .env
+        echo "ADZUNA_APP_KEY=${{ secrets.ADZUNA_APP_KEY }}" >> .env
+        echo "SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> .env
+        echo "SHEET_NAME=${{ secrets.SHEET_NAME }}" >> .env
+        echo "${{ secrets.GOOGLE_SERVICE_KEY }}" > creds.json
+
+
     - name: Run pipeline
       run: |
         python -m src.pipeline.run_pipeline
+
+    - name: Commit CSV back to repo (optional)
+      env:
+        GIT_EMAIL: actions@github.com
+        GIT_NAME: GitHub Actions
+      run: |
+        git config --global user.email "$GIT_EMAIL"
+        git config --global user.name "$GIT_NAME"
+        git add data_raw/adzuna_jobs.csv || true
+        git commit -m "Daily Adzuna update" || echo "No changes to commit"
+        # push only if credentials are available (repo token works)
+        git push origin HEAD:main || echo "Push skipped"
