@@ -2,7 +2,7 @@ name: Job Data Pipeline
 
 on:
   schedule:
-    - cron: '0 3 * * *'   # Daily at 8:30 AM IST
+    - cron: '0 3 * * *'   # Daily at 9:14 AM IST
   workflow_dispatch:
 
 jobs:
@@ -28,8 +28,11 @@ jobs:
         echo "ADZUNA_APP_KEY=${{ secrets.ADZUNA_APP_KEY }}" >> .env
         echo "SPREADSHEET_ID=${{ secrets.SPREADSHEET_ID }}" >> .env
         echo "SHEET_NAME=${{ secrets.SHEET_NAME }}" >> .env
-        echo "${{ secrets.GOOGLE_SERVICE_KEY }}" > creds.json
-
+    
+    - name: Create creds.json
+      run: |
+        echo "${{ secrets.GOOGLE_SERVICE_KEY_BASE64 }}" | base64 --decode > creds.json
+        chmod 600 creds.json
 
     - name: Run pipeline
       run: |
