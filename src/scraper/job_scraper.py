@@ -17,7 +17,7 @@ RESULTS_PER_PAGE = 50   # Adzuna max: 50
 if not APP_ID or not APP_KEY:
     raise ValueError("ADZUNA_APP_ID and ADZUNA_APP_KEY must be set in .env")
 
-logger.add("logs/adzuna.log", rotation="1 day")
+logger.add("logs/api.log", rotation="1 day")
 
 def extract_experience(text):
     if not isinstance(text, str):
@@ -68,14 +68,14 @@ def fetch_adzuna(keyword, page=1, results_per_page=RESULTS_PER_PAGE, country=COU
         "what": keyword,
         "content-type": "application/json"
     }
-    logger.info(f"[Adzuna] Requesting page {page} for '{keyword}'")
+    logger.info(f"Requesting page {page} for '{keyword}'")
     resp = requests.get(url, params=params, timeout=15)
     if resp.status_code != 200:
-        logger.warning(f"[Adzuna] status={resp.status_code} body={resp.text[:200]}")
+        logger.warning(f"status={resp.status_code} body={resp.text[:200]}")
         return None
     return resp.json()
 
-def scrape_adzuna(max_pages=2, country=COUNTRY):
+def scrape_jobs(max_pages=2, country=COUNTRY):
     TECH_KEYWORDS = [
         "software developer", "software engineer", "full stack developer",
         "frontend developer", "backend developer", "android developer",
@@ -88,10 +88,10 @@ def scrape_adzuna(max_pages=2, country=COUNTRY):
 
     all_jobs = []
 
-    logger.info(f"[Adzuna] Starting full tech scrape across {len(TECH_KEYWORDS)} keywords")
+    logger.info(f"Starting full tech scrape across {len(TECH_KEYWORDS)} keywords")
 
     for keyword in TECH_KEYWORDS:
-        logger.info(f"[Adzuna] Scraping keyword: {keyword}")
+        logger.info(f"Scraping keyword: {keyword}")
 
         # First request
         res = fetch_adzuna(keyword, page=1)
@@ -119,8 +119,8 @@ def scrape_adzuna(max_pages=2, country=COUNTRY):
 
     df = pd.DataFrame(all_jobs)
     os.makedirs("data_raw", exist_ok=True)
-    df.to_csv("data_raw/adzuna_jobs.csv", index=False)
-    logger.info(f"[Adzuna] Saved {len(df)} rows to data_raw/adzuna_jobs.csv")
+    df.to_csv("data_raw/jobs.csv", index=False)
+    logger.info(f"Saved {len(df)} rows to data_raw/jobs.csv")
     return df
 
 
