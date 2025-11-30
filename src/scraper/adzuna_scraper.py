@@ -1,4 +1,3 @@
-# src/scraper/adzuna_scraper.py
 import os
 import math
 import time
