@@ -6,12 +6,13 @@ import requests
 import pandas as pd
 from dotenv import load_dotenv
 from loguru import logger
+import re
 
 load_dotenv()
 
 APP_ID = os.getenv("ADZUNA_APP_ID")
 APP_KEY = os.getenv("ADZUNA_APP_KEY")
-COUNTRY = os.getenv("ADZUNA_COUNTRY", "in")   # in for India, uk, us (use appropriate code)
+COUNTRY = os.getenv("ADZUNA_COUNTRY", "in")   # in for India
 RESULTS_PER_PAGE = 50   # Adzuna max: 50
 
 if not APP_ID or not APP_KEY:
@@ -19,23 +20,41 @@ if not APP_ID or not APP_KEY:
 
 logger.add("logs/adzuna.log", rotation="1 day")
 
-def extract_skills_from_text(text, skill_master=None):
-    if not text:
+def extract_experience(text):
+    if not isinstance(text, str):
         return None
-    if skill_master is None:
-        skill_master = ["python","sql","excel","tableau","power bi","aws","java","spark","snowflake","mongodb","etl","pandas","numpy","machine learning","tensorflow"]
-    lower = text.lower()
-    found = [s for s in skill_master if s in lower]
-    return ", ".join(found) if found else None
 
-def extract_salary_min_max(item):
-    # Adzuna returns salary_min and salary_max in item if available
-    smin = item.get("salary_min")
-    smax = item.get("salary_max")
-    try:
-        return float(smin) if smin else None, float(smax) if smax else None
-    except:
-        return None, None
+    text = text.lower()
+
+    patterns = [
+        r'(\d+)\+?\s*years? of experience',
+        r'(\d+)\s*-\s*(\d+)\s*years?.*experience',
+        r'minimum\s*(\d+)\s*years',
+        r'at least\s*(\d+)\s*years',
+        r'(\d+)\+?\s*years?',
+        r'(\d+)\s*yrs'
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text)
+        if match:
+            if len(match.groups()) == 2:
+                low, high = match.groups()
+                return f"{low}-{high}"
+            return match.group(1)
+
+    implied = {
+        "entry-level": "0-1",
+        "fresher": "0",
+        "junior": "0-1",
+        "mid-level": "2-4",
+        "senior": "5+"
+    }
+    for phrase, exp in implied.items():
+        if phrase in text:
+            return exp
+
+    return None
 
 def fetch_adzuna(keyword, page=1, results_per_page=RESULTS_PER_PAGE, country=COUNTRY):
     """
@@ -75,18 +94,15 @@ def scrape_adzuna(keyword="data analyst", max_pages=2, country=COUNTRY):
     # process first page results
     results = res.get("results", [])
     for item in results:
-        smin, smax = extract_salary_min_max(item)
         description = item.get("description") or ""
         job = {
             "title": item.get("title"),
             "company": item.get("company", {}).get("display_name"),
             "location": item.get("location", {}).get("display_name"),
             "description": description,
-            "salary_min": smin,
-            "salary_max": smax,
+            "experience_required": extract_experience(description),  
             "created": item.get("created"),
             "redirect_url": item.get("redirect_url"),
-            "skills": extract_skills_from_text(description + " " + str(item.get("title")))
         }
         all_jobs.append(job)
 
@@ -97,18 +113,15 @@ def scrape_adzuna(keyword="data analyst", max_pages=2, country=COUNTRY):
         if not res_p:
             continue
         for item in res_p.get("results", []):
-            smin, smax = extract_salary_min_max(item)
             description = item.get("description") or ""
             job = {
                 "title": item.get("title"),
                 "company": item.get("company", {}).get("display_name"),
                 "location": item.get("location", {}).get("display_name"),
+                "experience_required": extract_experience(description),
                 "description": description,
-                "salary_min": smin,
-                "salary_max": smax,
                 "created": item.get("created"),
                 "redirect_url": item.get("redirect_url"),
-                "skills": extract_skills_from_text(description + " " + str(item.get("title")))
             }
             all_jobs.append(job)
 
