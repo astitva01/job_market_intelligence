@@ -10,7 +10,7 @@ SHEET_NAME = os.getenv("SHEET_NAME", "Adzuna Jobs")
 
 def run_pipeline():
     print("Starting Adzuna Job Pipeline")
-    df = scrape_adzuna("data analyst", max_pages=2)   # start with 2 pages
+    df = scrape_adzuna(max_pages=2)   # start with 2 pages
     print(f"Scraped {len(df)} jobs")
     if len(df) == 0:
         print("No jobs scraped. Check Adzuna credentials or change the keyword.")

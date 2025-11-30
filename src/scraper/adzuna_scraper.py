@@ -75,50 +75,43 @@ def fetch_adzuna(keyword, page=1, results_per_page=RESULTS_PER_PAGE, country=COU
         return None
     return resp.json()
 
-def scrape_adzuna(keyword="data analyst", max_pages=2, country=COUNTRY):
-    """
-    Fetch multiple pages and return DataFrame.
-    Use max_pages small (1-5) on testing.
-    """
+def scrape_adzuna(max_pages=2, country=COUNTRY):
+    TECH_KEYWORDS = [
+        "software developer", "software engineer", "full stack developer",
+        "frontend developer", "backend developer", "android developer",
+        "ios developer", "data analyst", "data scientist",
+        "ml engineer", "machine learning", "ai engineer",
+        "devops engineer", "cloud engineer", "site reliability engineer",
+        "database administrator", "data engineer", "business analyst",
+        "cyber security", "qa engineer", "tester", "automation engineer"
+    ]
+
     all_jobs = []
-    # first call to get count & pages
-    res = fetch_adzuna(keyword, page=1)
-    if not res:
-        return pd.DataFrame(all_jobs)
 
-    total_results = res.get("count", 0)
-    logger.info(f"[Adzuna] total_results={total_results}")
-    pages = min(max_pages, math.ceil(total_results / RESULTS_PER_PAGE or 1))
+    logger.info(f"[Adzuna] Starting full tech scrape across {len(TECH_KEYWORDS)} keywords")
 
-    # process first page results
-    results = res.get("results", [])
-    for item in results:
-        description = item.get("description") or ""
-        job = {
-            "title": item.get("title"),
-            "company": item.get("company", {}).get("display_name"),
-            "location": item.get("location", {}).get("display_name"),
-            "description": description,
-            "experience_required": extract_experience(description),  
-            "created": item.get("created"),
-            "redirect_url": item.get("redirect_url"),
-        }
-        all_jobs.append(job)
+    for keyword in TECH_KEYWORDS:
+        logger.info(f"[Adzuna] Scraping keyword: {keyword}")
 
-    # other pages
-    for p in range(2, pages + 1):
-        time.sleep(1.0)  # polite
-        res_p = fetch_adzuna(keyword, page=p)
-        if not res_p:
+        # First request
+        res = fetch_adzuna(keyword, page=1)
+        if not res:
             continue
-        for item in res_p.get("results", []):
-            description = item.get("description") or ""
+
+        total_results = res.get("count", 0)
+        pages = min(max_pages, math.ceil(total_results / RESULTS_PER_PAGE or 1))
+        results = res.get("results", [])
+
+        # Process page 1
+        for item in results:
+            desc = item.get("description") or ""
             job = {
+                "keyword": keyword,
                 "title": item.get("title"),
                 "company": item.get("company", {}).get("display_name"),
                 "location": item.get("location", {}).get("display_name"),
-                "experience_required": extract_experience(description),
-                "description": description,
+                "description": desc,
+                "experience_required": extract_experience(desc),
                 "created": item.get("created"),
                 "redirect_url": item.get("redirect_url"),
             }
