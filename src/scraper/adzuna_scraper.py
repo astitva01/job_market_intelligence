@@ -130,3 +130,5 @@ def scrape_adzuna(keyword="data analyst", max_pages=2, country=COUNTRY):
     df.to_csv("data_raw/adzuna_jobs.csv", index=False)
     logger.info(f"[Adzuna] Saved {len(df)} rows to data_raw/adzuna_jobs.csv")
     return df
+
+
